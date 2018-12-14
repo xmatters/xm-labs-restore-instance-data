@@ -1,0 +1,12 @@
+{
+	"xmodURL": "https://<mycompany>.<myserver>.xmatters.com",
+	"user": "MyUser",
+	"password": "MyPassword",
+	"outDirectory": ".",
+	"dirSep": "/",
+	"baseName": "BASE-FILE-NAME-FOR-CAPTURED-DATA",
+	"logFilename": "restore-instance-data-results",
+	"verbosity": 0,
+	"instance":  "np|prod",
+	"timeStr": "YYYYMMDD-HHMM"
+}
