@@ -8,12 +8,11 @@
 
 import os
 import sys
-import time
 
 # Used by command line processor
 VERSION = 1.0
-DATE = '2018-12-13'
-UPDATED = '2018-12-13'
+DATE = '2018-12-14'
+UPDATED = '2018-12-14'
 AUTHOR = 'jolin@xmatters.com'
 COPYRIGHT = '2018 xmatters, Inc. All rights reserved.'
 LICENSE = 'Apache License 2.0'

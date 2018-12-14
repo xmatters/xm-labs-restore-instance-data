@@ -4,11 +4,12 @@
    http://google.github.io/styleguide/pyguide.htm
 """
 
-import sys
-import json
 import argparse
-import getpass
 from datetime import datetime
+import getpass
+import json
+import sys
+import time
 
 from requests import auth
 
@@ -263,7 +264,7 @@ USAGE
             config.log_filename = (
                 config.out_directory + config.dir_sep + config.base_name +
                 '.' + config.instance_type + '.' + config.log_filename + 
-                config.time_str + '.log')
+                time.strftime(".%Y%m%d-%H%M") + '.log')
         config.sites_filename = (
             config.out_directory + config.dir_sep + config.base_name + '.' +
             config.instance_type + '.sites.' + config.time_str + '.json')
