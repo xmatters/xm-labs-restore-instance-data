@@ -24,10 +24,16 @@ def process_sites(args):
     processor.process(['sites'])
     return
 
-def process_users(args):
-    """Called when command line specifies Users"""
+def process_users_only(args):
+    """Called when command line specifies Users only"""
     common_logger.get_logger().debug('Processing Users only')
     processor.process(['users'])
+    return
+
+def process_users(args):
+    """Called when command line specifies Users and their Devices"""
+    common_logger.get_logger().debug('Processing Users and Devices only')
+    processor.process(['users', 'devices'])
     return
 
 def process_devices(args):
@@ -36,16 +42,28 @@ def process_devices(args):
     processor.process(['devices'])
     return
 
-def process_groups(args):
+def process_groups_only(args):
     """Called when command line specifies Groups"""
     common_logger.get_logger().debug('Processing Groups only')
     processor.process(['groups'])
     return
 
+def process_groups(args):
+    """Called when command line specifies Groups and their Shifts"""
+    common_logger.get_logger().debug('Processing Groups and Shifts only')
+    processor.process(['groups', 'shifts'])
+    return
+
+def process_shifts(args):
+    """Called when command line specifies Shifts"""
+    common_logger.get_logger().debug('Processing Shifts only')
+    processor.process(['shifts'])
+    return
+
 def process_all(args):
     """Called when command line specifies all operations"""
-    common_logger.get_logger().debug('Processing Sites, Users, Devices, and Groups')
-    processor.process(['sites','users','devices','groups'])
+    common_logger.get_logger().debug('Processing Sites, Users, Devices, Groups, and Shifts')
+    processor.process(['sites', 'users', 'devices', 'groups', 'shifts'])
     return
 
 class _CLIError(Exception):
@@ -177,25 +195,37 @@ USAGE
                                   "ed.xmatters.com' without quotes."))
         #Add in event command parsers
         sites_parser = subparsers.add_parser(
-            'sites', description=("Only restores 'Sites'"),
+            'sites', description=("Only restores Sites"),
             help=("Use this command in order to only read and restore Sites."))
         sites_parser.set_defaults(func=process_sites)
         users_parser = subparsers.add_parser(
-            'users', description=("Only restores 'Users'"),
-            help=("Use this command in order to only read and restore Uses."))
+            'users', description=("Only restores Users (with Devices)"),
+            help=("Use this command in order to only read and restore Uses, including their Devices."))
         users_parser.set_defaults(func=process_users)
+        users_only_parser = subparsers.add_parser(
+            'users-only', description=("Only restores Users (without Devices)"),
+            help=("Use this command in order to only read and restore Uses, excluding their Devices."))
+        users_only_parser.set_defaults(func=process_users_only)
         devices_parser = subparsers.add_parser(
-             'devices', description=("Only restores 'Devices'"),
+             'devices', description=("Only restores Devices"),
              help=("Use this command in order to only read and restore Devices."))
         devices_parser.set_defaults(func=process_devices)
         groups_parser = subparsers.add_parser(
-             'groups', description=("Only restores 'Groups'"),
-             help=("Use this command in order to only read and restore Groups."))
+             'groups', description=("Only restores Groups  (with Shifts)"),
+             help=("Use this command in order to only read and restore Groups (includes Shifts)."))
         groups_parser.set_defaults(func=process_groups)
+        groups_only_parser = subparsers.add_parser(
+             'groups-only', description=("Only restores Groups (without Shifts)"),
+             help=("Use this command in order to only read and restore Groups, excluding their Shifts."))
+        groups_only_parser.set_defaults(func=process_groups_only)
+        shifts_parser = subparsers.add_parser(
+             'shifts', description=("Only restores 'Shifts'"),
+             help=("Use this command in order to only read and restore Shifts."))
+        shifts_parser.set_defaults(func=process_shifts)
         all_parser = subparsers.add_parser(
             'all', description=("Restores Sites, Users, Devices, and Groups"),
             help=("Use this command in order to restore all objects "
-                  "to the instance: Sites, Users, Devices, Groups."))
+                  "to the instance: Sites, Users, Devices, Groups, Shifts."))
         all_parser.set_defaults(func=process_all)
 
         # Process arguments

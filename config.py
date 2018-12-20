@@ -27,6 +27,8 @@ PROFILE = 0
     Defaults are set from configuration file via processArgs()
 """
 program_name = os.path.basename(sys.argv[0])
+new_default_shift_name = "Default Shift"
+old_default_shift_name = "24x7"
 time_str = None
 page_size = 1000
 xmod_url = None
