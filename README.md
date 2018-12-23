@@ -1,6 +1,6 @@
 # Restore xMatters Instance Data (restore-instance-data.py)
 
-A Python utility to restore the xMatters Instance data that was preservved with the [Capture xMatters Instance Data](https://github/xmatters-jolin/xm-labs-capture-instance-data/) to help in recovering from an unforseen catastrophe.  The script currently restores the following information:
+A Python utility to restore the xMatters Instance data that was preservved with the [Capture xMatters Instance Data](https://github.com/xmatters-jolin/xm-labs-capture-instance-data) to help in recovering from an unforseen catastrophe.  The script currently restores the following information:
 
 * Sites
 * Users
@@ -30,7 +30,7 @@ This information may be given to xMatters Support, who can help with ensuring th
 
 ## Files
 
-* [restore-instance-data.py](capture-instance-data.py) - Main driver/starting point.
+* [restore-instance-data.py](restore-instance-data.py) - Main driver/starting point.
 * [config.py](config.py) - Defines the config object used by the program, and error messages
 * [common_logger.py](common_logger.py) - Provides logging capabilities to the utility.
 * [cli.py](cli.py) - The Command Line processor that handles dealing with command line arguments, as well as rading the defaults.json file.
