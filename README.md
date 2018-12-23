@@ -1,100 +1,243 @@
-# Instructions on creating the repo
-This file is divided up into two parts, the first is instructions on creating the repo and cloning the template, the second part is the template for the `README.md` file that will serve as the home page and installation instructions for the integration. 
+# Restore xMatters Instance Data (restore-instance-data.py)
 
-Some examples to emulate:
-* [Logz.io](https://github.com/xmatters/xm-labs-logz.io-elk)
-* [StatusPage](https://github.com/xmatters/xm-labs-statuspage)
+A Python utility to restore the xMatters Instance data that was preservved with the [Capture xMatters Instance Data](https://github/xmatters-jolin/xm-labs-capture-instance-data/) to help in recovering from an unforseen catastrophe.  The script currently restores the following information:
 
-## 1. Create the repo
-[Create the repo](https://help.github.com/articles/create-a-repo/) using your own GitHub account. Please prefix the name of the repo with `xm-labs-` and all in lower case. When you create the repo don't add a README or LICENSE; this will make sure to initialize an empty repo. 
+* Sites
+* Users
+* Devices with Timeframes
+* Groups and Shifts
 
-## 2. Clone the template
-*Note*: These instructions use git in the terminal. The GitHub desktop client is rather limited and likely won't save you any headaches. 
+The information is read from the timestamped files previously captured so that you can run this via automation as often as you like.  The file formats are dependent on the type of information, and are expected to be in a JSON (JavaScript Object Notation) format.  This makes it easier for recovery.
 
-Open a command line and do the following. Where `MY_NEW_REPO_NAME_HERE` is the name of your GitHub repo and `MY_NEW_REPO_URL` is the url generated when you create the new repo. 
+ One important caveat is that an xMatters Instance is also formed based on a set of Administrative Data that is unable to be captured or restored from an automated perspective.  The `capture` utility creates a file that lists the Administrative Objects that are in use by the captured data.  These Administrative Objects will need to either already exists in the environment being restored, or be re-created with the same exact same names (Spelling, capitalization, punctuation):
 
-```bash
-# Clone the template repo to the local file system. 
-git clone https://github.com/xmatters/xm-labs-template.git
-# Change the directory name to avoid confusion, then cd into it
-mv xm-labs-template MY_NEW_REPO_NAME_HERE
-cd MY_NEW_REPO_NAME_HERE
-# Remove the template git history
-rm -Rf .git/
-# Initialize the new git repo
-git init
-# Point this repo to the one on GitHub
-git remote add origin https://github.com/MY_NEW_REPO_URL.git
-# Add all files in the current directory and commit to staging
-git add .
-git commit -m "initial commit"
-# Push to cloud!
-git push origin master
-```
+* Roles (and their associated Function),
+* Countrys,
+* Languages,
+* Time Zones,
+* Device Names, and
+* User Service Providers (the internal handlers for the various Device Types)
 
-## 3. Make updates
-Then, make the updates to the `README.md` file and add any other files necessary. `README.md` files are written in GitHub-flavored markdown, see [here](https://github.com/adam-p/markdown-here/wiki/Markdown-Cheatsheet) for a quick reference. 
+This information may be given to xMatters Support, who can help with ensuring that your target environment is ready for recovery by this utility.
 
+![alt](https://github.com/xmatters/xMatters-Labs/raw/master/media/disclaimer.png)
 
-## 4. Push to GitHub
-Periodically, you will want to do a `git commit` to stash the changes locally. Then, when you are ready or need to step away, do a `git push origin master` to push the local changes to github.com. 
+## Pre-Requisites
 
-## 5. Request to add to xM Labs
-Once you are all finished, let Travis know and he will then fork it to the xMatters account and update the necessary links in the xM Labs main page. From there if you update your repo, those changes can be merged into the xMatters account repo and everything will be kept up to date!
+* [Python 3.7.1](https://www.python.org/downloads/release/python-371/) (I recommend using [pyenv](https://github.com/pyenv/pyenv) to get and manage your python installations)
+* Python [requests](http://docs.python-requests.org/en/master/) module (`pip install requests`)
+* Details for the xMatters instance to be captured (e.g. Non-Production vs Production, URL, a Company Supervisor's User ID and Password, etc.)
 
-# Template below:
----
+## Files
 
-# Product Name Goes Here
-A note about what the product is and what this integration/scriptlet is all about. Check out the sweet video [here](media/mysweetvideo.mov). Be sure to indicate what type of integration or enhancement you're building! (One-way or closed-loop integration? Script library? Feature update? Enhancement to an existing integration?)
+* [restore-instance-data.py](capture-instance-data.py) - Main driver/starting point.
+* [config.py](config.py) - Defines the config object used by the program, and error messages
+* [common_logger.py](common_logger.py) - Provides logging capabilities to the utility.
+* [cli.py](cli.py) - The Command Line processor that handles dealing with command line arguments, as well as rading the defaults.json file.
+* [processor.py](processor.py) - The guts of the utility where all of the interactions from the local file system to xMatters occurs.
+* [defaults.json](defaults.json) - Example default property settings.  You may override these with command line arguments too.
 
-<kbd>
-  <img src="https://github.com/xmatters/xMatters-Labs/raw/master/media/disclaimer.png">
-</kbd>
+## How it works
 
-# Pre-Requisites
-* Version 453 of App XYZ
-* Account in Application ABC
-* xMatters account - If you don't have one, [get one](https://www.xmatters.com)!
+The utility expects several inputs via the command-line (and optionally the defaults file) to get started.  The inputs tell the utility where the existing files are located, the xMatters instance to recover, and which specific information you want to have restored:
 
-# Files
-* [ExampleCommPlan.zip](ExampleCommPlan.zip) - This is an example comm plan to help get started. (If it doesn't make sense to have a full communication plan, then you can just use a couple javascript files like the one below.)
-* [EmailMessageTemplate.html](EmailMessageTemplate.html) - This is an example HTML template for emails and push messages. 
-* [FileA.js](FileA.js) - An example javascript file to be pasted into a Shared Library in the Integration builder. Note the comments
+* `all` - The most common case; restores Sites, Users, Devices (and Timeframes), Groups (and Shifts).
+* `sites` - Just Sites
+* `users` - Users and Devices and Timeframes
+* `users-only` - Just Users (not Devices and Timeframes)
+* `devices` - Just Devices and Timeframes
+* `groups` - Just Groups and Shifts
+* `groups-only` - Just Groups (not Shifts)
+* `shifts` - Just Shifts (not Groups)
 
-# How it works
-Add some info here detailing the overall architecture and how the integration works. The more information you can add, the more helpful this sections becomes. For example: An action happens in Application XYZ which triggers the thingamajig to fire a REST API call to the xMatters inbound integration on the imported communication plan. The integration script then parses out the payload and builds an event and passes that to xMatters. 
+Upon specifying the inputs, the utility runs until completion as it retrieves the requested data from the files system, and writes tha informaiton to your xMatters instance.  The locations of the input files, and their filename based on the supplied Timestamp may be specified via the command line or the defauts file too.
 
-# Installation
-Details of the installation go here. 
+## Installation
 
-## xMatters set up
-1. Steps to create a new Shared Library or (in|out)bound integration or point them to the xMatters online help to cover specific steps; i.e., import a communication plan (link: http://help.xmatters.com/OnDemand/xmodwelcome/communicationplanbuilder/exportcommplan.htm)
-2. Add this code to some place on what page:
+### Python / pyenv setup
+
+* [Python 3.7.1](https://www.python.org/downloads/release/python-371/) (I recommend using [pyenv](https://github.com/pyenv/pyenv) to get and manage your python installations)
+* After pyenv is installed, go to the directory where you downloaded the files from this repository.
+   1. `pyenv install 3.7.1` - Installs Python v3.7.1 into your local system (You only need to do this once)
+   2. `pyenv local 3.7.1` - Makes Python v3.7.1 the default for _this_ project (you only need to do this once per project)
+   3. _[For Linux/Max OS X]_ - `eval "$(pyenv init -)"` - Initializes pyenv for command line access to Python  (you need to do this whenver you open a Terminal windows unless you do step 5 below)
+   4. _[For Linux/Mac OS X]_ - `pyenv shell 3.7.1` - Sets up access to Pythons tools from the command line (e.g. `pip`)
+   5. `echo 'eval "$(pyenv init -)"' >> ~/.bash_profile` - makes sure Pyenv is initialized whenver you open a Terminal window.
+   6. _[Optional]_ `pyenv global 3.7.1` - Sets Python v3.7.1 as your global instance of Python
+* Install the Python [requests](http://docs.python-requests.org/en/master/) module
+  * `pip install requests`
+
+### restore-instance-data.py setup
+
+All you need to do now is to create an appropriate [defaults.json](defaults.json).  Use the included version for an example:
+
+   ```text
+   {
+
+   // Your xMatters base instances base URL
+   "xmodURL": "https://<mycompany>.<myserver>.xmatters.com",
+
+   // An xMatters User ID with the "Company Supervisor" Role
+   "user": "MyUser",
+
+   // The User's Password
+   "password": "MyPassword",
+
+   // The directory to place output and log files
+   // (the default is the current directory)
+   "outDirectory": ".",
+
+   // The character used between directory paths.
+   // (change to \ for Windows)
+   "dirSep": "/",
+
+   // The base part of the file name to use for restored data
+   // e.g. "restored-data"
+   "baseName": "BASE-FILE-NAME-FOR-RESTORED-DATA",
+
+   // The base part of the file name to use for runtime logging
+   // e.g. "restored-data-logging"
+   "logFilename": "restore-instance-data-results",
+
+   // Corresponds to the level of details you want in the log file
+   // (0=only errors, 1=only warnings, 2=info)
+   "verbosity": 0,
+
+   // Identifies whether the captured information is from your
+   // Non-Production or Production instance
+   "instance":  "np|prod",
+
+   // The timestamp of the files to restore
+   "timeStr": "YYYYMMDD-HHMM"
+   }
    ```
-   var items = [];
-   items.push( { "stuff": "value"} );
-   console.log( 'Do stuff' );
-   ```
 
+## Running
 
-## Application ABC set up
-Any specific steps for setting up the target application? The more precise you can be, the better!
+Run one of these commands:
 
-Images are encouraged. Adding them is as easy as:
+* Restore Everything
+  * `python3 restore-instance-data.py -v -c -d defaults.json -i np -t 20181220-0307 all`
+  * Example Input Filenames:
+    * my-instance.np.sites.20181220-0307.json
+    * my-instance.np.users.20181220-0307.json
+    * my-instance.np.groups.20181220-0307.json
+    * my-instance.np.restore-results.20181220-0307.log
+
+* Restore Sites only
+  * `python3 restore-instance-data.py -v -c -d defaults.json -i np -t 20181220-0307 sites`
+  * Example Input Filenames:
+    * my-instance.np.sites.20181220-0307.json
+    * my-instance.np.restore-results.20181220-0307.log
+
+* Restore Users only
+  * `python3 restore-instance-data.py -v -c -d defaults.json -i np -t 20181220-0307 users`
+  * Example Input Filenames:
+    * my-instance.np.users.20181220-0307.json
+    * my-instance.np.restore-results.20181220-0307.log
+
+* Restore Devices and Timeframes only
+  * `python3 restore-instance-data.py -v -c -d defaults.json -i np -t 20181220-0307 devices`
+  * Example Input Filenames:
+    * my-instance.np.users.20181220-0307.json
+      * Users file contains Devices and Timeframes too
+    * my-instance.np.restore-results.20181220-0307.log
+
+* Restore Groups and Shifts only
+  * `python3 restore-instance-data.py -v -c -d defaults.json -i np -t 20181220-0307 groups`
+  * Example Input Filenames:
+    * my-instance.np.groups.20181220-0307.json
+    * my-instance.np.restore-results.20181220-0307.log
+
+## Usage / Troubleshooting
+
+```help
+usage: restore-instance-data.py [-h] [-b BASE_NAME] [-c]
+                                [-d DEFAULTS_FILENAME] [-i {np,prod}]
+                                [-l LOG_FILENAME] [-o OUT_DIRECTORY]
+                                [-p [PASSWORD]] [-t TIME_STR] [-u USER] [-V]
+                                [-v] [-x XMOD_URL]
+                                {sites,users,users-only,devices,groups,groups-only,shifts,all}
+                                ...
+
+  Created by jolin@xmatters.com on 2018-12-14.
+  Copyright 2018 xmatters, Inc. All rights reserved.
+
+  Licensed under the Apache License 2.0
+  http://www.apache.org/licenses/LICENSE-2.0
+
+  Distributed on an "AS IS" basis without warranties
+  or conditions of any kind, either express or implied.
+
+USAGE
+
+positional arguments:
+  {sites,users,users-only,devices,groups,groups-only,shifts,all}
+    sites               Use this command in order to only read and restore
+                        Sites.
+    users               Use this command in order to only read and restore
+                        Uses, including their Devices.
+    users-only          Use this command in order to only read and restore
+                        Uses, excluding their Devices.
+    devices             Use this command in order to only read and restore
+                        Devices.
+    groups              Use this command in order to only read and restore
+                        Groups (includes Shifts).
+    groups-only         Use this command in order to only read and restore
+                        Groups, excluding their Shifts.
+    shifts              Use this command in order to only read and restore
+                        Shifts.
+    all                 Use this command in order to restore all objects to
+                        the instance: Sites, Users, Devices, Groups, Shifts.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -b BASE_NAME, --basename BASE_NAME
+                        If not specified in the defaults file, use -b to
+                        specify the base name of the input file. The names ie
+                        expected to have a timestamp and .json appended to the
+                        end.
+  -c, --console         If specified, will echo all log output to the console
+                        at the requested verbosity based on the -v option
+  -d DEFAULTS_FILENAME, --defaults DEFAULTS_FILENAME
+                        Specifes the name of the file containing default
+                        settings [default: defaults.json]
+  -i {np,prod}, --itype {np,prod}
+                        Specifies whether we are updating the Production
+                        (prod) or Non-Production (np) instance. [default: np]
+  -l LOG_FILENAME, --lfile LOG_FILENAME
+                        If not specified in the defaults file, use -l to
+                        specify the base name of the log file. The name will
+                        have a timestamp and .log appended to the end.
+  -o OUT_DIRECTORY, --odir OUT_DIRECTORY
+                        If not specified in the defaults file, use -o to
+                        specify the file system location where the output
+                        files were written.
+  -p [PASSWORD]         If not specified in the defaults file, use -p to
+                        specify a password either on the command line, or be
+                        prompted
+  -t TIME_STR, --time TIME_STR
+                        If not specified in the defaults file, use -t to
+                        specify the time string used in the data files to
+                        read.
+  -u USER, --user USER  If not specified in the defaults file, use -u to
+                        specify the xmatters user id that has permissions to
+                        get Event and Notification data.
+  -V, --version         show program's version number and exit
+  -v                    set verbosity level. Each occurrence of v increases
+                        the logging level. By default it is ERRORs only, a
+                        single v (-v) means add WARNING logging, a double v
+                        (-vv) means add INFO logging, and a tripple v (-vvv)
+                        means add DEBUG logging [default: 0]
+  -x XMOD_URL, --xmodurl XMOD_URL
+                        If not specified in the defaults file, use -i to
+                        specify the base URL of your xmatters instance. For
+                        example, 'https://myco.hosted.xmatters.com' without
+                        quotes.
+
 ```
-<kbd>
-  <img src="media/cat-tax.png" width="200" height="400">
-</kbd>
-```
 
-<kbd>
-  <img src="media/cat-tax.png" width="200" height="400">
-</kbd>
-
-
-# Testing
-Be specific. What should happen to make sure this code works? What would a user expect to see? 
-
-# Troubleshooting
-Optional section for how to troubleshoot. Especially anything in the source application that an xMatters developer might not know about, or specific areas in xMatters to look for details - like the Activity Stream? 
+* You can add multiple "v"'s to the -v command line option.  
+  * A single "-v" means only show errors and warnings
+  * A double "-vv" means to show errors, warnings, and info statements
+  * A tripple "-vvv" means to show errors, warnings, info, and debug statements
