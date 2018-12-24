@@ -1,11 +1,12 @@
 # Restore xMatters Instance Data (restore-instance-data.py)
 
-A Python utility to restore the xMatters Instance data that was preservved with the [Capture xMatters Instance Data](https://github.com/xmatters-jolin/xm-labs-capture-instance-data) to help in recovering from an unforseen catastrophe.  The script currently restores the following information:
+A Python utility to restore the xMatters Instance data that was preservved with the [Capture xMatters Instance Data](https://github.com/xmatters/xm-labs-capture-instance-data) to help in recovering from an unforseen catastrophe.  The script currently restores the following information:
 
 * Sites
 * Users
 * Devices with Timeframes
 * Groups and Shifts
+  * **Caveat**: Group Observers are not able to be restored at this time, and will have to be manually re-established once the Groups have been recovered.  Once the xMatters [`Get a group xM API`](https://help.xmatters.com/xmapi/index.html#get-a-group) and [`Create a group xM API`](https://help.xmatters.com/xmapi/index.html#create-a-group) can handle capturing and restoring those values, we can include them.
 
 The information is read from the timestamped files previously captured so that you can run this via automation as often as you like.  The file formats are dependent on the type of information, and are expected to be in a JSON (JavaScript Object Notation) format.  This makes it easier for recovery.
 
