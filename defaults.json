@@ -4,9 +4,8 @@
 	"password": "MyPassword",
 	"outDirectory": ".",
 	"dirSep": "/",
-	"baseName": "BASE-FILE-NAME-FOR-CAPTURED-DATA",
-	"logFilename": "restore-instance-data-results",
+	"baseName": "instance",
+	"logFilename": "capture-results",
 	"verbosity": 0,
-	"instance":  "np|prod",
 	"timeStr": "YYYYMMDD-HHMM"
 }

@@ -186,6 +186,18 @@ def _add_devices(user_id: str, target_name: str, devices: list):
 
         # Update the device
         device['owner'] = user_id
+        tempID = device['id']
+    
+        # Attempt to get the group from XM based on targetName
+        # If not found, remove the UUID so it can be recreated
+        xmDeviceID = _get_device( device['targetName'] )
+    
+        if xmDeviceID:
+            device['id'] = xmDeviceID
+        else:
+            del device['id']
+
+
         del device['targetName']
         del device['links']
         if 'timeframes' in device:
@@ -193,6 +205,8 @@ def _add_devices(user_id: str, target_name: str, devices: list):
                 device['timeframes'] = device['timeframes']['data']
             else:
                 del device['timeframes']
+        
+
 
         # Set our resource URLs
         url = config.xmod_url + '/api/xm/1/devices'
@@ -224,6 +238,41 @@ def _add_devices(user_id: str, target_name: str, devices: list):
                 f'{target_name}')
 
     return dev_count
+
+def _get_device(targetName: str ):
+    """Get a device id by targetName
+
+    Retrieves the device object record from xMatters based on it's targetName.
+
+    Args:
+        targetName (str): Target Name to retrieve
+        deviceName (str): The device name to retrieve (Work Phone)
+
+    Return:
+        device_id (str): The found device ID or None
+    """
+
+    # Initialize conditions
+    url = config.xmod_url + '/api/xm/1/devices/' + urllib.parse.quote( targetName )
+    _logger.debug('Retrieving device, url=%s', url)
+
+    # Get the site records
+    response = requests.get(url, auth=config.basic_auth)
+    if response.status_code in [404]:
+        return None
+        
+    if response.status_code not in [200]:
+        _log_xm_error(url, response)
+        _user_dict[targetName] = None
+        return None
+
+    # Process the responses
+    device = response.json()
+    _logger.debug('Retrieved Device "%s"', device['targetName'])
+
+    return device['id']
+
+
 
 def _add_user(include_devices: bool, user_json: str):
     """Attempst to add a new User object from the JSON string.
@@ -266,10 +315,23 @@ def _add_user(include_devices: bool, user_json: str):
                 supervisors.append(supervisor['targetName'])
         del user_obj['supervisors']
     user_obj['supervisors'] = []
-            
+    # ?
+    tempID = user_obj['id']
+
+    # Attempt to get the user from XM based on targetName
+    # If not found, remove the UUID so it can be recreated
+    xmUserID = _get_user( user_obj['targetName'], True )
+
+    if xmUserID:
+        user_obj['id'] = xmUserID
+    else:
+        del user_obj['id']
+    
+
     # Set our resource URLs
     url = config.xmod_url + '/api/xm/1/people'
     _logger.debug('Attempting to create User with body:\n\t "%s"\n\tvia url: %s', json.dumps(user_obj), url)
+
 
     # Initialize loop with first request
     try:
@@ -286,24 +348,31 @@ def _add_user(include_devices: bool, user_json: str):
         _log_xm_error(url, response)
         return None
 
+    
     # Process the response
     new_user_obj = response.json()
     _user_dict[new_user_obj['targetName']] = new_user_obj['id']
     _supervisor_dict[new_user_obj['id']] = supervisors
 
+    #_logger.debug( f'full_user_obj: {full_user_obj}' )
     # If we need to add devices, do that now
     dev_count = 0
-    if include_devices:
-        dev_count = _add_devices(new_user_obj['id'], new_user_obj['targetName'], full_user_obj['devices'])
+
+    try:
+        devices = full_user_obj['devices']
+        if include_devices:
+            dev_count = _add_devices(new_user_obj['id'], new_user_obj['targetName'], devices )
+    except KeyError:
+        _logger.debug( f'No devices found in capture file' )
 
     _logger.info(f'Created/Updated User "{new_user_obj["targetName"]}" - Id: {new_user_obj["id"]} '\
                  f'and added {dev_count} Devices.')
     #_logger.debug(f'Created/Updated User "{new_user_obj["targetName"]}" - Id: {new_user_obj["id"]} '\
     #             f'and added {dev_count} Devices.' \
     #             f'\n\tUser Obj: {pprint.pformat(new_user_obj)}')
-    return user_obj
+    return new_user_obj
 
-def _get_user(targetName: str):
+def _get_user(targetName: str, fromAPI: bool):
     """Get a User's id by targetName
 
     Retrieves the User object record from xMatters based on it's targetName.
@@ -314,7 +383,7 @@ def _get_user(targetName: str):
     Return:
         user_id (str): The found User ID
     """
-    if targetName in _user_dict:
+    if targetName in _user_dict and not fromAPI:
         user_id = _user_dict[targetName]
         _logger.debug('Found ID "%s" for User "%s"', user_id, targetName)
         return user_id
@@ -325,6 +394,9 @@ def _get_user(targetName: str):
 
     # Get the site records
     response = requests.get(url, auth=config.basic_auth)
+    if response.status_code in [404]:
+        return None
+
     if response.status_code not in [200]:
         _log_xm_error(url, response)
         _user_dict[targetName] = None
@@ -357,7 +429,7 @@ def _add_user_supervisors(user_id: str, target_name: str):
     user['targetName'] = target_name
     supervisors = []
     for targetName in _supervisor_dict[user_id]:
-        super_id = _get_user(targetName)
+        super_id = _get_user(targetName, False)
         if super_id:
             supervisors.append(super_id)
         else:
@@ -458,12 +530,12 @@ def _process_devices():
                 # Try to get the "id" from the user dictionary, otherwise
                 # retrieve "id" field directly from xMatters as it may have
                 # changed upon recovery
-                user_id = _get_user(user_obj['targetName'])
+                user_id = _get_user(user_obj['targetName'], False)
                 num_devices += _add_devices(user_id, user_obj['targetName'], full_user_obj['devices'])
 
     _logger.info(f"Restored {num_devices} of a possible {max_devices} Devices from {num_lines} Users.")
 
-def _get_group(targetName: str):
+def _get_group(targetName: str, fromAPI: str):
     """Get a Group's id by targetName
 
     Retrieves the Group object record from xMatters based on it's targetName.
@@ -474,10 +546,11 @@ def _get_group(targetName: str):
     Return:
         user_id (str): The found User ID
     """
-    if targetName in _group_dict:
+    if targetName in _group_dict and not fromAPI:
         group_id = _group_dict[targetName]
         _logger.debug(f'Found ID "{group_id}" for Group "{targetName}"')
         return group_id
+
 
     # Initialize conditions
     url = config.xmod_url + '/api/xm/1/groups/' + urllib.parse.quote(targetName)
@@ -550,9 +623,9 @@ def _add_member(group_id: str, group_name: str, shift_name: str, member_obj: dic
     member_obj['recipient'] = {}
     member_obj['recipient']['recipientType'] = recip_type
     if recip_type == 'GROUP':
-        member_obj['recipient']['id'] = _get_group(recip_target_name)
+        member_obj['recipient']['id'] = _get_group(recip_target_name, False)
     else:
-        member_obj['recipient']['id'] = _get_user(recip_target_name)
+        member_obj['recipient']['id'] = _get_user(recip_target_name, False)
     
     # Set our resource URLs
     url = config.xmod_url + '/api/xm/1/groups/' + group_id + '/shifts/' + urllib.parse.quote(shift_name) + '/members'
@@ -764,7 +837,7 @@ def _add_group(group_json: str):
     if 'supervisors' in group_obj and group_obj['supervisors']['total'] > 0:
         supervisors = []
         for supervisor in group_obj['supervisors']['data']:
-            super_id = _get_user(supervisor['targetName'])
+            super_id = _get_user(supervisor['targetName'], False)
             if super_id:
                 supervisors.append(super_id)
             else:
@@ -772,7 +845,20 @@ def _add_group(group_json: str):
         del group_obj['supervisors']
         if len(supervisors) > 0:
             group_obj['supervisors'] = supervisors
-            
+
+    # ?
+    tempID = group_obj['id']
+
+    # Attempt to get the group from XM based on targetName
+    # If not found, remove the UUID so it can be recreated
+    xmGroupID = _get_group( group_obj['targetName'], True )
+
+    if xmGroupID:
+        group_obj['id'] = xmGroupID
+    else:
+        del group_obj['id']
+    
+
     # Set our resource URLs
     url = config.xmod_url + '/api/xm/1/groups'
     _logger.debug(f'Attempting to create Group with body:\n\t "{json.dumps(group_obj)}"\n\tvia url: {url}')
@@ -832,7 +918,7 @@ def _process_shifts():
                 # Try to get the "id" from the group dictionary, otherwise
                 # retrieve "id" field directly from xMatters as it may have
                 # changed upon recovery
-                group_id = _get_group(group_obj['targetName'])
+                group_id = _get_group(group_obj['targetName'], False)
                 num_shifts += _add_shifts(group_id, group_obj['targetName'], full_group_obj['shifts'])
         _logger.info(f"Restored {num_shifts} of a possible {max_shifts} Shifts from {num_lines} Groups.")
 
@@ -858,7 +944,7 @@ def _process_shifts():
                 # Try to get the "id" from the group dictionary, otherwise
                 # retrieve "id" field directly from xMatters as it may have
                 # changed upon recovery
-                group_id = _get_group(group_obj['targetName'])
+                group_id = _get_group(group_obj['targetName'], False)
                 num_members += _add_shift_members(group_id, group_obj['targetName'], full_group_obj['shifts'])
         _logger.info(f"Restored {num_members} of a possible {max_members} Members from {num_shifts} Shifts in {num_lines} Groups.")
 
