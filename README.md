@@ -72,7 +72,7 @@ Upon specifying the inputs, the utility runs until completion as it retrieves th
 
 All you need to do now is to create an appropriate [defaults.json](defaults.json).  Use the included version for an example:
 
-In place of `user` and `password`, it is recommended to generate an [API Key and Secret)[https://help.xmatters.com/ondemand/user/apikeys.htm] and use those in place of the user and password. The key inherits the roles associated with the user who generated it. 
+In place of `user` and `password`, it is recommended to generate an [API Key and Secret](https://help.xmatters.com/ondemand/user/apikeys.htm) and use those in place of the user and password. The key inherits the roles associated with the user who generated it. 
 
 ```text
    {
