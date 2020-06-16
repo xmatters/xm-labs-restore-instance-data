@@ -8,6 +8,9 @@ A Python utility to restore the xMatters Instance data that was preservved with 
 * Groups and Shifts
   * **Caveat**: Group Observers are not able to be restored at this time, and will have to be manually re-established once the Groups have been recovered.  Once the xMatters [`Get a group xM API`](https://help.xmatters.com/xmapi/index.html#get-a-group) and [`Create a group xM API`](https://help.xmatters.com/xmapi/index.html#create-a-group) can handle capturing and restoring those values, we can include them.
 
+**Note**: This has beeen superseeded by the [xmtoolbox](https://github.com/xmatters/xmtoolbox-quick-start)
+
+
 The information is read from the timestamped files previously captured so that you can run this via automation as often as you like.  The file formats are dependent on the type of information, and are expected to be in a JSON (JavaScript Object Notation) format.  This makes it easier for recovery.
 
  One important caveat is that an xMatters Instance is also formed based on a set of Administrative Data that is unable to be captured or restored from an automated perspective.  The `capture` utility creates a file that lists the Administrative Objects that are in use by the captured data.  These Administrative Objects will need to either already exists in the environment being restored, or be re-created with the same exact same names (Spelling, capitalization, punctuation):
